@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>3D Gold Bar Viewer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
     <style>
         body {
             margin: 0;
@@ -13,14 +14,94 @@
         canvas {
             display: block;
         }
+        .gold-text {
+            position: fixed;
+            bottom: 15%;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            font-family: 'Bebas Neue', cursive;
+            font-size: 32px;
+            letter-spacing: 3px;
+            font-weight: 400;
+            text-align: center;
+            z-index: 10;
+        }
+        #loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #1a1a1a;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        #loader.hidden {
+            opacity: 0;
+            transition: opacity 0.5s;
+            pointer-events: none;
+        }
+        .progress-bar-container {
+            width: 300px;
+            height: 8px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 100%;
+            background-color: #FFD700;
+            width: 0%;
+            border-radius: 4px;
+            transition: width 0.1s ease;
+        }
+        .loader-text {
+            color: #FFD700;
+            font-family: Arial, sans-serif;
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
     </style>
 </head>
 <body>
+    <div id="loader">
+        <div class="loader-text">Loading MSS Gold Bars...</div>
+        <div class="progress-bar-container">
+            <div class="progress-bar" id="progress"></div>
+        </div>
+    </div>
+    <div class="gold-text">999.9 Pure Gold</div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <script>
         const YOUR_FRONT_IMAGE_URL = 'https://mssbh.s3.me-south-1.amazonaws.com/ounceHDFront.webp';
         const YOUR_BACK_IMAGE_URL = 'https://mssbh.s3.me-south-1.amazonaws.com/ounceHDBack.webp';
+
+        // Loading progress
+        const progressBar = document.getElementById('progress');
+        const loaderElement = document.getElementById('loader');
+        let loadedAssets = 0;
+        const totalAssets = 2;
+        
+        // Simulate progress bar for 3 seconds
+        let progress = 0;
+        const progressInterval = setInterval(() => {
+            progress += 100 / 30; // 30 steps for 3 seconds (100ms intervals)
+            if (progress > 100) progress = 100;
+            progressBar.style.width = progress + '%';
+            
+            if (progress >= 100 && loadedAssets >= totalAssets) {
+                clearInterval(progressInterval);
+                setTimeout(() => {
+                    loaderElement.classList.add('hidden');
+                    setTimeout(() => loaderElement.remove(), 500);
+                }, 200);
+            }
+        }, 100);
 
         // Scene setup
         const scene = new THREE.Scene();
@@ -74,6 +155,7 @@
             texture.generateMipmaps = false;
             materials[4].map = texture;
             materials[4].needsUpdate = true;
+            loadedAssets++;
         });
 
         // Load back texture
@@ -85,6 +167,7 @@
             texture.generateMipmaps = false;
             materials[5].map = texture;
             materials[5].needsUpdate = true;
+            loadedAssets++;
         });
 
         // Create mesh
@@ -93,12 +176,14 @@
         goldBar.receiveShadow = true;
         scene.add(goldBar);
 
+
         // Add orbit controls
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
         controls.minDistance = 5;
         controls.maxDistance = 12;
+        controls.enablePan = false;
 
         // Auto-rotation
         let autoRotate = true;
