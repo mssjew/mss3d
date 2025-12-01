@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Gold Bar Viewer</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #1a1a1a;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script>
+        const YOUR_FRONT_IMAGE_URL = 'https://mssbh.s3.me-south-1.amazonaws.com/ounceHDFront.webp';
+        const YOUR_BACK_IMAGE_URL = 'https://mssbh.s3.me-south-1.amazonaws.com/ounceHDBack.webp';
+
+        // Scene setup
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x1a1a1a);
+
+        // Camera setup
+        const camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 6;
+
+        // Renderer setup
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.outputEncoding = THREE.sRGBEncoding;
+        document.body.appendChild(renderer.domElement);
+
+        // Lights
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(10, 10, 5);
+        directionalLight.castShadow = true;
+        scene.add(directionalLight);
+
+        // Load textures
+        const textureLoader = new THREE.TextureLoader();
+        textureLoader.crossOrigin = 'anonymous';
+        
+        // Create gold bar geometry (proper aspect ratio, ultra thin)
+        const geometry = new THREE.BoxGeometry(2.4, 3.8, 0.01);
+        
+        // Create materials array for each face
+        const materials = [
+            new THREE.MeshStandardMaterial({ color: 0xFFD700, metalness: 0.9, roughness: 0.1 }), // right
+            new THREE.MeshStandardMaterial({ color: 0xFFD700, metalness: 0.9, roughness: 0.1 }), // left
+            new THREE.MeshStandardMaterial({ color: 0xFFD700, metalness: 0.9, roughness: 0.1 }), // top
+            new THREE.MeshStandardMaterial({ color: 0xFFD700, metalness: 0.9, roughness: 0.1 }), // bottom
+            new THREE.MeshStandardMaterial({ map: null, metalness: 0.3, roughness: 0.1 }), // front
+            new THREE.MeshStandardMaterial({ map: null, metalness: 0.3, roughness: 0.1 })  // back
+        ];
+
+        // Load front texture
+        textureLoader.load(YOUR_FRONT_IMAGE_URL, (texture) => {
+            texture.encoding = THREE.sRGBEncoding;
+            texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+            texture.minFilter = THREE.LinearFilter;
+            texture.magFilter = THREE.LinearFilter;
+            texture.generateMipmaps = false;
+            materials[4].map = texture;
+            materials[4].needsUpdate = true;
+        });
+
+        // Load back texture
+        textureLoader.load(YOUR_BACK_IMAGE_URL, (texture) => {
+            texture.encoding = THREE.sRGBEncoding;
+            texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+            texture.minFilter = THREE.LinearFilter;
+            texture.magFilter = THREE.LinearFilter;
+            texture.generateMipmaps = false;
+            materials[5].map = texture;
+            materials[5].needsUpdate = true;
+        });
+
+        // Create mesh
+        const goldBar = new THREE.Mesh(geometry, materials);
+        goldBar.castShadow = true;
+        goldBar.receiveShadow = true;
+        scene.add(goldBar);
+
+        // Add orbit controls
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.minDistance = 4;
+        controls.maxDistance = 8;
+
+        // Auto-rotation
+        let autoRotate = true;
+        controls.addEventListener('start', () => { autoRotate = false; });
+        controls.addEventListener('end', () => { 
+            setTimeout(() => { autoRotate = true; }, 3000);
+        });
+
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            if (autoRotate) {
+                goldBar.rotation.y += 0.005;
+            }
+            
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
+    </script>
+</body>
+</html>
